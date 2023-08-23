@@ -1,12 +1,19 @@
 version: v2beta1
 name: flask-hello-worldgit
 
+hooks:
+  - name: add-to-hosts
+    command: echo "$(minikube ip) argocd.io" | sudo tee -a /etc/hosts
+    events: ["before:deploy"]
+
 # This is a list of `pipelines` that DevSpace can execute (you can define your own)
 pipelines:
   deploy:
     run: |-
       minikube start
-      create_deployments argocd
+      minikube addons enable ingress
+      create_deployments argocd 
+      create_deployments ingress-config
 
 # This is a list of `deployments` that DevSpace can create for this project
 deployments:
@@ -16,3 +23,36 @@ deployments:
         git: https://github.com/argoproj/argo-helm
         subPath: ./charts/argo-cd
     namespace: argocd
+
+  ingress-config:
+    kubectl:
+      inlineManifest: |-
+        apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          name: argocd-server-ingress
+          namespace: argocd
+          annotations:
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+            nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+            # If you encounter a redirect loop or are getting a 307 response code
+            # then you need to force the nginx ingress to connect to the backend using HTTPS.
+            #
+            nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        spec:
+          ingressClassName: nginx
+          rules:
+          - host: argocd.io
+            http:
+              paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: argocd-server
+                    port:
+                      name: https
+          tls:
+          - hosts:
+            - argocd.io
+            secretName: argocd-server-tls # as expected by argocd-server
