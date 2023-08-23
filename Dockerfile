@@ -1,12 +1,17 @@
-FROM python:3.12-slim
+FROM python:3-slim
 
 WORKDIR /usr/src/app
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Create a non-root user
+RUN groupadd -g 999 appuser && \
+    useradd -r -u 999 -g appuser appuser
 
-EXPOSE 8080
+COPY  requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt 
 
 COPY . .
+
+#switch to the non-root user
+USER appuser
 
 CMD [ "python", "app.py" ]
