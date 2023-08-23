@@ -1,0 +1,18 @@
+version: v2beta1
+name: flask-hello-worldgit
+
+# This is a list of `pipelines` that DevSpace can execute (you can define your own)
+pipelines:
+  deploy:
+    run: |-
+      minikube start
+      create_deployments argocd
+
+# This is a list of `deployments` that DevSpace can create for this project
+deployments:
+  argocd:
+    helm:
+      chart:
+        git: https://github.com/argoproj/argo-helm
+        subPath: ./charts/argo-cd
+    namespace: argocd
