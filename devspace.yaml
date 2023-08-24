@@ -4,7 +4,7 @@ name: flask-hello-worldgit
 hooks:
   - name: add-to-hosts
     command: echo "$(minikube ip) argocd.io" | sudo tee -a /etc/hosts
-    events: ["before:deploy"]
+    events: ["before:deploy:ingress-config"]
 
 # This is a list of `pipelines` that DevSpace can execute (you can define your own)
 pipelines:
@@ -12,8 +12,13 @@ pipelines:
     run: |-
       minikube start
       minikube addons enable ingress
-      create_deployments argocd 
+      create_deployments argocd
       create_deployments ingress-config
+      wait_pod --label-selector app.kubernetes.io/name=argocd-server --namespace argocd
+      argocd login --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) --insecure --grpc-web argocd.io
+      kubectl config set-context --current --namespace=argocd
+      argocd app create flask-hello-world --repo https://github.com/MaryiaDevOpsRoom/argocd.git --path . --dest-server https://kubernetes.default.svc --dest-namespace default
+      argocd app sync flask-hello-world
 
 # This is a list of `deployments` that DevSpace can create for this project
 deployments:
