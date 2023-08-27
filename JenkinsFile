@@ -10,8 +10,7 @@ pipeline {
         
         stage('Checkout'){
            steps {
-                url: 'https://github.com/MaryiaDevOpsRoom/flask-hello-world',
-                branch: 'main'
+                checkout scm
            }
         }
 
