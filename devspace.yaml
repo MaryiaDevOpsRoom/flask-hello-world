@@ -19,7 +19,17 @@ pipelines:
       kubectl config set-context --current --namespace=argocd
       argocd app create flask-hello-world --repo https://github.com/MaryiaDevOpsRoom/argocd.git --path . --dest-server https://kubernetes.default.svc --dest-namespace default
       argocd app sync flask-hello-world
+      create_deployments argo-workflow
+      #kubectl patch deployment argo-workflow-argo-workflows-server --namespace argo --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": ["server",--auth-mode=server"]}]'
+      #kubectl -n argo port-forward deployment/argo-server 2746:2746
+      create_deployments jenkins
 
+  dev: 
+    run: |-
+      create_deployments jenkins
+
+
+      
 # This is a list of `deployments` that DevSpace can create for this project
 deployments:
   argocd:
@@ -28,6 +38,20 @@ deployments:
         git: https://github.com/argoproj/argo-helm
         subPath: ./charts/argo-cd
     namespace: argocd
+
+  argo-workflow:
+    helm:
+      chart:
+        git: https://github.com/argoproj/argo-helm/
+        subPath: ./charts/argo-workflows
+    namespace: argo
+
+  jenkins:
+    helm:
+      chart: 
+        name: jenkins
+        repo: https://charts.jenkins.io
+    namespace: jenkins
 
   ingress-config:
     kubectl:
