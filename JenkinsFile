@@ -39,7 +39,7 @@ pipeline {
         
         stage('Checkout K8S manifest SCM'){
             steps {
-                url: 'hhttps://github.com/MaryiaDevOpsRoom/argocd',
+                url: 'https://github.com/MaryiaDevOpsRoom/argocd',
                 branch: 'main'
             }
         }
