@@ -38,12 +38,14 @@ pipeline {
         }
         
         stage('Checkout K8S manifest SCM'){
+            steps {
             // Check out Kubernetes manifests from a different SCM repository
-            checkout([
-                $class: 'GitSCM',
-                branches: [[name: '*/main']], 
-                userRemoteConfigs: [[url: 'https://github.com/MaryiaDevOpsRoom/argocd.git']]
-            ])
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']], 
+                    userRemoteConfigs: [[url: 'https://github.com/MaryiaDevOpsRoom/argocd.git']]
+                ])
+            }
         }
         
         stage('Update K8S manifest & push to Repo'){
