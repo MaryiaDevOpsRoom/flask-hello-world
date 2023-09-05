@@ -1,0 +1,68 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: flask-hello-world-workflow
+  namespace: argo
+spec:
+  entrypoint: build-and-deploy
+  templates:
+    - name: build-and-deploy
+      steps:
+        - - name: checkout
+            template: checkout
+
+        - - name: build-docker
+            template: build-docker
+
+        - - name: push-to-repo
+            template: push-to-repo
+
+        - - name: checkout-k8s-manifest
+            template: checkout-k8s-manifest
+
+        - - name: update-k8s-manifest
+            template: update-k8s-manifest
+
+    - name: checkout
+      container:
+        image: alpine/git
+        command: [sh, -c]
+        args: ["git clone --branch=main https://github.com/MaryiaDevOpsRoom/flask-hello-world.git"]
+
+    - name: build-docker
+      container:
+        image: docker:latest
+        command: [sh, -c]
+        args: ["
+          echo 'Build Docker Image'
+          docker build -t flask-hello-world:hash .
+          docker tag flask-hello-world:v2 quay.io/maryia-brauer/flask-hello-world:v2
+          "]
+
+    - name: push-to-repo
+      container:
+        image: docker:latest
+        command: [sh, -c]
+        args: ["
+          echo 'Push to Repo'
+          docker push quay.io/maryia-brauer/flask-hello-world:v2
+          "]
+
+    - name: checkout-k8s-manifest
+      container:
+        image: alpine/git
+        command: [sh, -c]
+        args: ["git clone --branch=main https://github.com/MaryiaDevOpsRoom/argocd.git"]
+
+    - name: update-k8s-manifest
+      container:
+        image: alpine/git
+        command: [sh, -c]
+        args: ["
+          sed -i s#- image: quya.*#- image: quay.io/maryia-brauer/flask-hello-world:v2#g' flask-hello-world.yaml
+          git add flask-hello-world.yaml
+          git commit -m 'Updated the deploy yaml | Argo Workflow'
+          git push https://github.com/MaryiaDevOpsRoom/argocd HEAD:main
+          "] 
+
+    

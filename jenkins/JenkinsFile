@@ -1,0 +1,63 @@
+pipeline {
+    agent any 
+
+    #look to the repo (hooks, Jenkins should check itself)
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker') {
+            steps {
+                script {
+                    sh '''
+                    echo 'Build Docker Image'
+                    docker.build("flask-hello-world:${BUILD_NUMBER}", "-f .")
+                    docker tag flask-hello-world:${BUILD_NUMBER} quay.io/maryia-brauer/flask-hello-world:${BUILD_NUMBER}
+                    '''
+                }
+            }
+        }
+
+        stage('Push the artifacts') {
+            steps {
+                script {
+                    sh '''
+                    echo 'Push to Repo'
+                    docker push quay.io/maryia-brauer/flask-hello-world:${BUILD_NUMBER}
+                    '''
+                }
+            }
+        }
+        
+        stage('Checkout K8S manifest SCM') {
+            steps {
+                // Check out Kubernetes manifests from a different SCM repository
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']], 
+                    userRemoteConfigs: [[url: 'https://github.com/MaryiaDevOpsRoom/argocd.git']]
+                ])
+            }
+        }
+        
+        stage('Update K8S manifest & push to Repo') {
+            steps {
+                script {
+                    sh '''
+                    cat flask-hello-world.yaml 
+                    sed -i "s/32/${BUILD_NUMBER}/g" flask-hello-world.yaml 
+                    cat flask-hello-world.yaml 
+                    git add flask-hello-world.yaml
+                    git commit -m "Updated the deploy yaml | Jenkins Pipeline"
+                    git remote -v
+                    git push https://github.com/MaryiaDevOpsRoom/argocd HEAD:main
+                    '''                        
+                }
+            }
+        }
+    }
+}

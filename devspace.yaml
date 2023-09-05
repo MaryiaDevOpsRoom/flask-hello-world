@@ -2,9 +2,12 @@ version: v2beta1
 name: flask-hello-worldgit
 
 hooks:
-  - name: add-to-hosts
+  - name: add-to-hosts-argocd-config
     command: echo "$(minikube ip) argocd.io" | sudo tee -a /etc/hosts
     events: ["before:deploy:ingress-config"]
+  - name: add-to-hosts-jenkins-ingress
+    command: echo "$(minikube ip) jenkins.example.com" | sudo tee -a /etc/hosts
+    events: ["before:deploy:jenkins-ingress-config"]
 
 # This is a list of `pipelines` that DevSpace can execute (you can define your own)
 pipelines:
@@ -19,25 +22,69 @@ pipelines:
       kubectl config set-context --current --namespace=argocd
       argocd app create flask-hello-world --repo https://github.com/MaryiaDevOpsRoom/argocd.git --path . --dest-server https://kubernetes.default.svc --dest-namespace default
       argocd app sync flask-hello-world
-      create_deployments argo-workflow
+
+
+
+
+      #create_deployments argo-workflow
       #kubectl patch deployment argo-workflow-argo-workflows-server --namespace argo --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": ["server",--auth-mode=server"]}]'
       #kubectl -n argo port-forward deployment/argo-server 2746:2746
-      create_deployments jenkins
+      #create_deployments jenkins
+      #create_deployments jenkins-ingress-config
 
-  dev: 
-    run: |-
-      create_deployments jenkins
+      #USERNAME=$(kubectl get secret jenkins -n jenkins -o jsonpath="{.data.jenkins-admin-user}" | base64 --decode)
+      #PASSWORD=$(kubectl get secret jenkins -n jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode)
+      #curl -o jenkins-cli.jar http://jenkins.example.com/jnlpJars/jenkins-cli.jar
+      #java -jar jenkins-cli.jar -s http://jenkins.example.com -auth "$USERNAME:$PASSWORD" who-am-i
+      #java -jar jenkins-cli.jar -s http://jenkins.example.com -auth "$USERNAME:$PASSWORD"  istall-plugin git
+      #Install workflow-aggregator docker-plugin docker-workflow git plugins
+      #JENKINS_URL="http://jenkins.example.com"
+      #CRUMB=$(curl -s -u "$USERNAME:$PASSWORD" "$JENKINS_URL/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)")
+      #curl -X POST -d '<jenkins><install plugin="git@latest" /></jenkins>' --header "$CRUMB" --header 'Content-Type: text/xml' -u "$USERNAME:$PASSWORD" "$JENKINS_URL/pluginManager/installNecessaryPlugins"
+      #create docker image (jenkins + docker + git) /podman
 
+
+      kubectl config set-context --current --namespace=default
+      create_deployments argo-workflow
+      #check last step!!!
+      create_deployments argo-workflow-config
+
+      create_deployments prometheus
+
+
+      
+  dev:
+    run: |-      
+      
+
+
+
+
+      
 
       
 # This is a list of `deployments` that DevSpace can create for this project
 deployments:
+  loki:
+    helm:
+      chart:
+        name: loki-stack
+        repo: https://github.com/grafana/helm-charts
+    namespace: loki
+
   argocd:
     helm:
       chart:
         git: https://github.com/argoproj/argo-helm
         subPath: ./charts/argo-cd
     namespace: argocd
+
+  prometheus:
+    helm:
+      chart: 
+        git: https://github.com/prometheus-community/helm-charts      
+        subPath: charts/prometheus
+    namespace: prometheus
 
   argo-workflow:
     helm:
@@ -52,6 +99,16 @@ deployments:
         name: jenkins
         repo: https://charts.jenkins.io
     namespace: jenkins
+
+  jenkins-ingress-config:
+    kubectl:
+      manifests:
+        - manifests/jenkins-ingress.yaml
+
+  argo-workflow-config:
+    kubectl:
+      manifests:
+        - manifests/argoWorkflow.yaml
 
   ingress-config:
     kubectl:

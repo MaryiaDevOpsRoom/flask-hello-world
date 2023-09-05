@@ -1,0 +1,5 @@
+git
+docker
+docker-workflow
+workflow-aggregator
+# Add other plugins here
