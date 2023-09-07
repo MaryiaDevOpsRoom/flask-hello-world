@@ -1,2 +1,8 @@
 README.md
 .dockerignore 
+devspace.yaml
+devspace_start.sh
+.gitignore
+manifests/
+jenkins/
+.devspace/

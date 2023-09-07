@@ -1,6 +1,6 @@
-
-
 # Ignore DevSpace cache and log folder
 .devspace/
-jenkkins/
+jenkins/
 manifests/cd
+manifests/config.json
+manifests/githubcred.yaml

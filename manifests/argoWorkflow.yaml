@@ -5,64 +5,66 @@ metadata:
   namespace: argo
 spec:
   entrypoint: build-and-deploy
+  arguments:
+    parameters:
+      - name: hash 
+        value: 100
   templates:
     - name: build-and-deploy
       steps:
-        - - name: checkout
-            template: checkout
+      - - name: build-docker-image
+          template: build-docker-image
+      - - name: update-k8s-manifest
+          template: update-k8s-manifest
 
-        - - name: build-docker
-            template: build-docker
-
-        - - name: push-to-repo
-            template: push-to-repo
-
-        - - name: checkout-k8s-manifest
-            template: checkout-k8s-manifest
-
-        - - name: update-k8s-manifest
-            template: update-k8s-manifest
-
-    - name: checkout
+    - name: build-docker-image
       container:
-        image: alpine/git
-        command: [sh, -c]
-        args: ["git clone --branch=main https://github.com/MaryiaDevOpsRoom/flask-hello-world.git"]
-
-    - name: build-docker
-      container:
-        image: docker:latest
-        command: [sh, -c]
-        args: ["
-          echo 'Build Docker Image'
-          docker build -t flask-hello-world:hash .
-          docker tag flask-hello-world:v2 quay.io/maryia-brauer/flask-hello-world:v2
-          "]
-
-    - name: push-to-repo
-      container:
-        image: docker:latest
-        command: [sh, -c]
-        args: ["
-          echo 'Push to Repo'
-          docker push quay.io/maryia-brauer/flask-hello-world:v2
-          "]
-
-    - name: checkout-k8s-manifest
-      container:
-        image: alpine/git
-        command: [sh, -c]
-        args: ["git clone --branch=main https://github.com/MaryiaDevOpsRoom/argocd.git"]
+        image: gcr.io/kaniko-project/executor:latest
+        command: ["/kaniko/executor"]
+        args:
+        - --context=git://github.com/MaryiaDevOpsRoom/flask-hello-world.git
+        - --dockerfile=./Dockerfile
+        - --destination=quay.io/maryia-brauer/flask-hello-world:{{workflow.parameters.hash}}
+        volumeMounts:
+          - name: kaniko-secret
+            mountPath: /kaniko/.docker
+      volumes:
+        - name: kaniko-secret
+          secret:
+            secretName: regcred
+            items:
+              - key: .dockerconfigjson
+                path: config.json
 
     - name: update-k8s-manifest
       container:
-        image: alpine/git
-        command: [sh, -c]
-        args: ["
-          sed -i s#- image: quya.*#- image: quay.io/maryia-brauer/flask-hello-world:v2#g' flask-hello-world.yaml
-          git add flask-hello-world.yaml
-          git commit -m 'Updated the deploy yaml | Argo Workflow'
-          git push https://github.com/MaryiaDevOpsRoom/argocd HEAD:main
-          "] 
-
+        image: bitnami/git
+        env:
+        - name: EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: github-access
+              key: email
+        - name: USER
+          valueFrom:
+            secretKeyRef:
+              name: github-access
+              key: user
+        - name: TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-access
+              key: token
+        command: ["/bin/sh", "-c"]
+        args: 
+          - > 
+            mkdir gitrepo &&
+            git clone --depth=1 https://$USER:$TOKEN@github.com/MaryiaDevOpsRoom/argocd.git gitrepo &&
+            cd gitrepo/ &&
+            sed -i "s#image: quay.*#image: quay.io/maryia-brauer/flask-hello-world:{{workflow.parameters.hash}}#g" flask-hello-world.yaml &&
+            git config user.name $USER &&
+            git config user.email $EMAIL &&
+            git add . &&
+            git commit -m "Upgraded flask-hello-world.yaml thru argo workflows" &&
+            git push -u origin main
     

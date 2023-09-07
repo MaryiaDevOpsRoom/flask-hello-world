@@ -43,19 +43,33 @@ pipelines:
       #curl -X POST -d '<jenkins><install plugin="git@latest" /></jenkins>' --header "$CRUMB" --header 'Content-Type: text/xml' -u "$USERNAME:$PASSWORD" "$JENKINS_URL/pluginManager/installNecessaryPlugins"
       #create docker image (jenkins + docker + git) /podman
 
+      create_deployments prometheus
 
       kubectl config set-context --current --namespace=default
-      create_deployments argo-workflow
-      #check last step!!!
-      create_deployments argo-workflow-config
+      create_deployments argo-workflow  
+      cat <<EOF | kubectl create -f -
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: workflow-controller-configmap
+        namespace: argo
+      data: {}
+      EOF  
+      argo server --auth-mode server -n argo
+      kubectl create secret generic regcred --from-file=.dockerconfigjson=./manifests/config.json -n argo
+      kubectl apply -f ./manifests/githubcred.yaml 
+            #kubectl port-forward svc/argo-workflow-argo-workflows-server  -n argo 2746:2746
 
-      create_deployments prometheus
+
+
+
 
 
       
   dev:
-    run: |-      
-      
+    run: |-  
+      argo submit ./manifests/argoWorkflow.yaml -p hash=$(git log -n 1 --pretty=format:%h)
+
 
 
 
@@ -104,11 +118,6 @@ deployments:
     kubectl:
       manifests:
         - manifests/jenkins-ingress.yaml
-
-  argo-workflow-config:
-    kubectl:
-      manifests:
-        - manifests/argoWorkflow.yaml
 
   ingress-config:
     kubectl:
