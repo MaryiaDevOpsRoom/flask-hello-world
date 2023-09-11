@@ -5,26 +5,70 @@ metadata:
   namespace: argo
 spec:
   entrypoint: build-and-deploy
-  arguments:
-    parameters:
-      - name: hash 
-        value: 100
   templates:
     - name: build-and-deploy
       steps:
+      - - name: retrieve-commit-hash
+          template: retrieve-commit-hash
       - - name: build-docker-image
           template: build-docker-image
+          arguments:
+            parameters:
+              - name: hash
+                value: "{{steps.retrieve-commit-hash.outputs.parameters.commit-hash}}"
       - - name: update-k8s-manifest
           template: update-k8s-manifest
+          arguments:
+            parameters:
+              - name: hash
+                value: "{{steps.retrieve-commit-hash.outputs.parameters.commit-hash}}"
+
+    - name: retrieve-commit-hash
+      container:
+        image: bitnami/git
+        env:
+        - name: EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: github-access
+              key: email
+        - name: USER
+          valueFrom:
+            secretKeyRef:
+              name: github-access
+              key: user
+        - name: TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-access
+              key: token
+        - name: REPO
+          value: "github.com/MaryiaDevOpsRoom/flask-hello-world.git"
+        command: ["/bin/sh", "-c"]
+        args: 
+          - > 
+            git clone --depth=1 https://$USER:$TOKEN@$REPO gitrepo &&
+            cd gitrepo/ &&
+            COMMIT_HASH=$(git log -n 1 --pretty=format:%h) &&
+            echo "$COMMIT_HASH" >> /tmp/commit-hash.yaml
+      outputs:
+            parameters:
+              - name: commit-hash
+                valueFrom:
+                  default: "100"
+                  path: /tmp/commit-hash.yaml
 
     - name: build-docker-image
+      inputs:
+        parameters:
+        - name: hash
       container:
         image: gcr.io/kaniko-project/executor:latest
         command: ["/kaniko/executor"]
         args:
         - --context=git://github.com/MaryiaDevOpsRoom/flask-hello-world.git
         - --dockerfile=./Dockerfile
-        - --destination=quay.io/maryia-brauer/flask-hello-world:{{workflow.parameters.hash}}
+        - --destination=quay.io/maryia-brauer/flask-hello-world:{{inputs.parameters.hash}}
         volumeMounts:
           - name: kaniko-secret
             mountPath: /kaniko/.docker
@@ -37,6 +81,9 @@ spec:
                 path: config.json
 
     - name: update-k8s-manifest
+      inputs:
+        parameters:
+        - name: hash
       container:
         image: bitnami/git
         env:
@@ -61,10 +108,9 @@ spec:
             mkdir gitrepo &&
             git clone --depth=1 https://$USER:$TOKEN@github.com/MaryiaDevOpsRoom/argocd.git gitrepo &&
             cd gitrepo/ &&
-            sed -i "s#image: quay.*#image: quay.io/maryia-brauer/flask-hello-world:{{workflow.parameters.hash}}#g" flask-hello-world.yaml &&
+            sed -i "s#image: quay.*#image: quay.io/maryia-brauer/flask-hello-world:{{inputs.parameters.hash}}#g" flask-hello-world.yaml &&
             git config user.name $USER &&
             git config user.email $EMAIL &&
             git add . &&
             git commit -m "Upgraded flask-hello-world.yaml thru argo workflows" &&
             git push -u origin main
-    

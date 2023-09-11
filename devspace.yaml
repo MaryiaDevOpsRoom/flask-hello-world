@@ -55,20 +55,19 @@ pipelines:
         namespace: argo
       data: {}
       EOF  
-      argo server --auth-mode server -n argo
+      #argo server --auth-mode server -n argo
       kubectl create secret generic regcred --from-file=.dockerconfigjson=./manifests/config.json -n argo
       kubectl apply -f ./manifests/githubcred.yaml 
-            #kubectl port-forward svc/argo-workflow-argo-workflows-server  -n argo 2746:2746
-
-
-
-
+      #kubectl port-forward svc/argo-workflow-argo-workflows-server  -n argo 2746:2746
+      kubectl apply -f ./manifests/role.yaml
+      kubectl apply -f ./manifests/rbac.yaml 
+      argo submit ./manifests/argoWorkflow.yaml  
 
 
       
   dev:
     run: |-  
-      argo submit ./manifests/argoWorkflow.yaml -p hash=$(git log -n 1 --pretty=format:%h)
+      
 
 
 
