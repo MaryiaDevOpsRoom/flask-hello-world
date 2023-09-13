@@ -29,10 +29,9 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 script {
-                    def gitRepo = 'https://$GIT_USER:$GIT_PASS@github.com/MaryiaDevOpsRoom/argocd.git'
                     withCredentials([gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS', gitToolName: 'git-tool')]){                    
                     sh """
-                        git clone $gitRepo gitrepo1
+                        git clone https://$GIT_USER:$GIT_PASS@github.com/MaryiaDevOpsRoom/argocd.git' gitrepo1
                         cd gitrepo1
                         sed -i "s#image: quay.*#image: quay.io/maryia-brauer/flask-hello-world:${build_tag}#g" flask-hello-world.yaml
                         git config user.name maryia-brauer
