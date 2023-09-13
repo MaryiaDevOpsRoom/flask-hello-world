@@ -29,7 +29,7 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 script {
-                    withCredentials([gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS', gitToolName: 'git-tool')]) {                    
+                    withCredentials([gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', gitToolName: 'git-tool')]) {                    
                         sh """
                             git clone https://$GIT_USER:$GIT_PASS@github.com/MaryiaDevOpsRoom/argocd.git gitrepo1
                             cd gitrepo1
