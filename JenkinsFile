@@ -29,7 +29,7 @@ pipeline {
             steps {
                 script {
                     def gitRepo = 'https://github.com/MaryiaDevOpsRoom/argocd.git'
-                    withCredentials([gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', gitToolName: 'git-tool')]) {
+                    withCredentials([gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', gitToolName: 'git-tool')])
                     sh """
                         git clone $gitRepo gitrepo1
                         cd gitrepo1
