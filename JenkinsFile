@@ -21,7 +21,6 @@ pipeline {
                         --dockerfile=./Dockerfile \
                         --destination=${dockerImage}
                     ''')
-                    }
                 }
             }
         }
