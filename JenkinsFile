@@ -29,9 +29,8 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 script {
-                    def gitRepo = 'https://github.com/MaryiaDevOpsRoom/argocd.git'
-                    def gitCredentials = gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS', gitToolName: 'git-tool')
-                    
+                    def gitRepo = 'https://$GIT_USER:$GIT_PASS@github.com/MaryiaDevOpsRoom/argocd.git'
+                    withCredentials([gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS', gitToolName: 'git-tool')]){                    
                     sh """
                         git clone $gitRepo gitrepo1
                         cd gitrepo1
@@ -40,7 +39,7 @@ pipeline {
                         git config user.email maryia.brauer@va.lv
                         git add .
                         git commit -m "Upgraded flask-hello-world.yaml thru Jenkins"
-                        git push -u \${gitCredentials} main
+                        git push -u origin main
                     """ 
                 }
             }
