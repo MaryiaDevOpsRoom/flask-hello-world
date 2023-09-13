@@ -24,27 +24,6 @@ pipelines:
       argocd app sync flask-hello-world
 
 
-
-
-      #create_deployments argo-workflow
-      #kubectl patch deployment argo-workflow-argo-workflows-server --namespace argo --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": ["server",--auth-mode=server"]}]'
-      #kubectl -n argo port-forward deployment/argo-server 2746:2746
-      #create_deployments jenkins
-      #create_deployments jenkins-ingress-config
-
-      #USERNAME=$(kubectl get secret jenkins -n jenkins -o jsonpath="{.data.jenkins-admin-user}" | base64 --decode)
-      #PASSWORD=$(kubectl get secret jenkins -n jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode)
-      #curl -o jenkins-cli.jar http://jenkins.example.com/jnlpJars/jenkins-cli.jar
-      #java -jar jenkins-cli.jar -s http://jenkins.example.com -auth "$USERNAME:$PASSWORD" who-am-i
-      #java -jar jenkins-cli.jar -s http://jenkins.example.com -auth "$USERNAME:$PASSWORD"  istall-plugin git
-      #Install workflow-aggregator docker-plugin docker-workflow git plugins
-      #JENKINS_URL="http://jenkins.example.com"
-      #CRUMB=$(curl -s -u "$USERNAME:$PASSWORD" "$JENKINS_URL/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)")
-      #curl -X POST -d '<jenkins><install plugin="git@latest" /></jenkins>' --header "$CRUMB" --header 'Content-Type: text/xml' -u "$USERNAME:$PASSWORD" "$JENKINS_URL/pluginManager/installNecessaryPlugins"
-      #create docker image (jenkins + docker + git) /podman
-
-      create_deployments prometheus
-
       kubectl config set-context --current --namespace=default
       create_deployments argo-workflow  
       cat <<EOF | kubectl create -f -
@@ -64,10 +43,36 @@ pipelines:
       argo submit ./manifests/argoWorkflow.yaml  
 
 
+
+
+      #USERNAME=$(kubectl get secret jenkins -n jenkins -o jsonpath="{.data.jenkins-admin-user}" | base64 --decode)
+      #PASSWORD=$(kubectl get secret jenkins -n jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode)
+      #curl -o jenkins-cli.jar http://jenkins.example.com/jnlpJars/jenkins-cli.jar
+      #java -jar jenkins-cli.jar -s http://jenkins.example.com -auth "$USERNAME:$PASSWORD" who-am-i
+      #java -jar jenkins-cli.jar -s http://jenkins.example.com -auth "$USERNAME:$PASSWORD"  istall-plugin git
+      #Install workflow-aggregator docker-plugin docker-workflow git plugins
+      #JENKINS_URL="http://jenkins.example.com"
+      #CRUMB=$(curl -s -u "$USERNAME:$PASSWORD" "$JENKINS_URL/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)")
+      #curl -X POST -d '<jenkins><install plugin="git@latest" /></jenkins>' --header "$CRUMB" --header 'Content-Type: text/xml' -u "$USERNAME:$PASSWORD" "$JENKINS_URL/pluginManager/installNecessaryPlugins"
+      #create docker image (jenkins + docker + git) /podman
+
+      create_deployments prometheus
+
+    
+
+
       
   dev:
-    run: |-  
-      
+    run: |- 
+      kubectl create namespace jenkins
+      helm install jenkins bitnami/jenkins -n jenkins
+      kubectl apply -f jenkins/jenkins-volume.yaml
+      kubectl apply -f jenkins/jenkins-sa.yaml 
+      helm install jenkins bitnami/jenkins -n jenkins -f ./jenkins/jenkins-values.yaml
+      #PASSWORD=$(kubectl get secret --namespace jenkins jenkins -o jsonpath="{.data.jenkins-password}" | base64 -d)
+      #USERNAME=$(kubectl get secret jenkins -n jenkins -o jsonpath="{.data.jenkins-admin-user}" | base64 --decode)
+
+
 
 
 
@@ -110,7 +115,7 @@ deployments:
     helm:
       chart: 
         name: jenkins
-        repo: https://charts.jenkins.io
+        repo: bitnami/jenkins
     namespace: jenkins
 
   jenkins-ingress-config:

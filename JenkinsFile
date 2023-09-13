@@ -4,14 +4,9 @@ pipeline {
     stages {
         stage('Retrieve Commit Hash') {
             steps {
+                checkout scm
                 script {
-                    def gitRepo = 'https://github.com/MaryiaDevOpsRoom/flask-hello-world.git'
-                    git clone $gitRepo gitrepo
-                    sh """
-                        cd flask-hello-world
-                        COMMIT_HASH=\$(git log -n 1 --pretty=format:%h)
-                        echo "\$COMMIT_HASH" > ../commit-hash.txt
-                    """
+                    build_tag = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
                 }
             }
         }
@@ -19,13 +14,11 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    def commitHash = readFile('commit-hash.txt').trim()
-                    
                     withCredentials([usernamePassword(credentialsId: '62676b3b-a8d2-4c6e-9362-4d02cc1ba917', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh """
-                            docker build -t quay.io/maryia-brauer/flask-hello-world:${commitHash} -f Dockerfile .
+                            docker build -t quay.io/maryia-brauer/flask-hello-world:${build_tag} -f Dockerfile .
                             docker login -u $DOCKER_USER -p $DOCKER_PASS
-                            docker push quay.io/maryia-brauer/flask-hello-world:${commitHash}
+                            docker push quay.io/maryia-brauer/flask-hello-world:${build_tag}
                         """
                     }
                 }
@@ -35,13 +28,11 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 script {
-                    def commitHash = readFile('commit-hash.txt').trim()
-                    
                     def gitRepo = 'https://github.com/MaryiaDevOpsRoom/argocd.git'
                     sh """
                         git clone $gitRepo gitrepo1
                         cd gitrepo1
-                        sed -i "s#image: quay.*#image: quay.io/maryia-brauer/flask-hello-world:${commitHash}#g" flask-hello-world.yaml
+                        sed -i "s#image: quay.*#image: quay.io/maryia-brauer/flask-hello-world:${build_tag}#g" flask-hello-world.yaml
                         git config user.name maryia-brauer
                         git config user.email maryia.brauer@va.lv
                         git add .
