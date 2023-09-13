@@ -14,13 +14,13 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    def dockerImage = "quay.io/maryia-brauer/flask-hello-world:${build_tag}"
-                    sh(script: '''
-                        kaniko/executor \
-                        --context=$WORKSPACE \
-                        --dockerfile=./Dockerfile \
-                        --destination=${dockerImage}
-                    ''')
+                    withCredentials([usernamePassword(credentialsId: '62676b3b-a8d2-4c6e-9362-4d02cc1ba917', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            docker build -t quay.io/maryia-brauer/flask-hello-world:${build_tag} -f Dockerfile .
+                            docker login -u $DOCKER_USER -p $DOCKER_PASS quay.io
+                            docker push quay.io/maryia-brauer/flask-hello-world:${build_tag}
+                        """
+                    }
                 }
             }
         }
