@@ -40,7 +40,7 @@ pipeline {
                         git config user.email maryia.brauer@va.lv
                         git add .
                         git commit -m "Upgraded flask-hello-world.yaml thru Jenkins"
-                        git push -u ${gitCredentials} main
+                        git push -u \${gitCredentials} main
                     """ 
                 }
             }
