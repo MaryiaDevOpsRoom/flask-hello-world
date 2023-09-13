@@ -29,6 +29,7 @@ pipeline {
             steps {
                 script {
                     def gitRepo = 'https://github.com/MaryiaDevOpsRoom/argocd.git'
+                    def gitCredentials = credentials('39e76333-a95d-47ff-9ebd-a92317c75af8') 
                     sh """
                         git clone $gitRepo gitrepo1
                         cd gitrepo1
@@ -37,8 +38,8 @@ pipeline {
                         git config user.email maryia.brauer@va.lv
                         git add .
                         git commit -m "Upgraded flask-hello-world.yaml thru Jenkins"
-                        git push -u origin main
-                    """
+                        git push -u ${gitCredentials} main
+                    """ 
                 }
             }
         }
