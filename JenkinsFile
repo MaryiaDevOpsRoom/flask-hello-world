@@ -29,17 +29,18 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 script {
-                    withCredentials([gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS', gitToolName: 'git-tool')]){                    
-                    sh """
-                        git clone https://$GIT_USER:$GIT_PASS@github.com/MaryiaDevOpsRoom/argocd.git' gitrepo1
-                        cd gitrepo1
-                        sed -i "s#image: quay.*#image: quay.io/maryia-brauer/flask-hello-world:${build_tag}#g" flask-hello-world.yaml
-                        git config user.name maryia-brauer
-                        git config user.email maryia.brauer@va.lv
-                        git add .
-                        git commit -m "Upgraded flask-hello-world.yaml thru Jenkins"
-                        git push -u origin main
-                    """ 
+                    withCredentials([gitUsernamePassword(credentialsId: '39e76333-a95d-47ff-9ebd-a92317c75af8', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS', gitToolName: 'git-tool')]) {                    
+                        sh """
+                            git clone https://$GIT_USER:$GIT_PASS@github.com/MaryiaDevOpsRoom/argocd.git gitrepo1
+                            cd gitrepo1
+                            sed -i "s#image: quay.*#image: quay.io/maryia-brauer/flask-hello-world:${build_tag}#g" flask-hello-world.yaml
+                            git config user.name maryia-brauer
+                            git config user.email maryia.brauer@va.lv
+                            git add .
+                            git commit -m "Upgraded flask-hello-world.yaml thru Jenkins"
+                            git push -u origin main
+                        """ 
+                    }
                 }
             }
         }
@@ -53,5 +54,4 @@ pipeline {
             echo 'Pipeline failed!'
         }
     }
-}
 }
